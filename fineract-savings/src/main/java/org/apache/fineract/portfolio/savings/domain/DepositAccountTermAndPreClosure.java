@@ -39,6 +39,9 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
 import org.apache.fineract.infrastructure.core.domain.AbstractPersistableCustom;
@@ -87,6 +90,21 @@ public class DepositAccountTermAndPreClosure extends AbstractPersistableCustom<L
 
     @Column(name = "transfer_to_savings_account_id")
     private Long transferToSavingsAccountId;
+
+    @Getter
+    @Setter
+    @Column(name = "deposit_period_extra", nullable = true)
+    private Integer depositPeriodExtra;
+
+    @Getter
+    @Setter
+    @Column(name = "deposit_period_extra_frequency_enum", nullable = true)
+    private Integer depositPeriodExtraFrequency;
+
+    @Getter
+    @Setter
+    @Column(name = "deposit_amount_extra", scale = 6, precision = 19, nullable = true)
+    private BigDecimal depositAmountExtra;
 
     protected DepositAccountTermAndPreClosure() {
 

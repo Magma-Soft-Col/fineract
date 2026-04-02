@@ -201,6 +201,12 @@ public final class JsonCommand {
 
     }
 
+    public static JsonCommand from(final String jsonCommand, final JsonElement element, final FromJsonHelper fromApiJsonHelper) {
+        return new JsonCommand(null, jsonCommand, element, fromApiJsonHelper, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null);
+
+    }
+
     public String json() {
         return this.jsonCommand;
     }

@@ -20,6 +20,7 @@ package org.apache.fineract.portfolio.savings.api;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -510,5 +511,105 @@ final class RecurringDepositAccountsApiResourceSwagger {
         public Long clientId;
         @Schema(example = "1")
         public Long resourceId;
+    }
+
+    @Schema(description = "PostRecurringDepositAccountsSimulationRequest")
+    public static final class PostRecurringDepositAccountsSimulationRequest {
+
+        private PostRecurringDepositAccountsSimulationRequest() {}
+
+        @Schema(example = "1")
+        public Long clientId;
+        @Schema(example = "1")
+        public Long productId;
+        @Schema(example = "en")
+        public String locale;
+        @Schema(example = "dd MMMM yyyy")
+        public String dateFormat;
+        @Schema(example = "02 June 2014")
+        public String submittedOnDate;
+        @Schema(example = "20")
+        public Integer depositPeriod;
+        @Schema(example = "1")
+        public Integer depositPeriodFrequencyId;
+        @Schema(example = "10000")
+        public Float depositAmount;
+        @Schema(example = "false")
+        public Boolean isCalendarInherited;
+        @Schema(example = "2")
+        public Integer recurringFrequency;
+        @Schema(example = "1")
+        public Integer recurringFrequencyType;
+        @Schema(example = "2000")
+        public Long mandatoryRecommendedDepositAmount;
+        @Schema(example = "100", description = "Extra deposit amount applied periodically")
+        public Float depositExtraAmount;
+        @Schema(example = "2", description = "Frequency type (0=days,1=weeks,2=months,3=years)")
+        public Integer depositPeriodExtraFrequencyId;
+        @Schema(example = "6", description = "Apply extra every N periods (e.g. every 6 months)")
+        public Integer depositPeriodExtra;
+    }
+
+    @Schema(description = "RecurringDepositSimulationResponse")
+    public static final class RecurringDepositSimulationResponse {
+
+        private RecurringDepositSimulationResponse() {}
+
+        public List<RecurringDepositSimulationInstallment> schedule;
+
+        public RecurringDepositSimulationInterest interest;
+    }
+
+    @Schema(description = "RecurringDepositSimulationInstallment")
+    public static final class RecurringDepositSimulationInstallment {
+
+        private RecurringDepositSimulationInstallment() {}
+
+        @Schema(example = "1")
+        public Integer installmentNumber;
+
+        @Schema(example = "[2026, 3, 1]")
+        public LocalDate dueDate;
+
+        @Schema(example = "100")
+        public Float depositAmount;
+
+        @Schema(example = "0")
+        public Float extraAmount;
+
+        @Schema(example = "100")
+        public Float totalDepositAmount;
+    }
+
+    @Schema(description = "RecurringDepositSimulationInterest")
+    public static final class RecurringDepositSimulationInterest {
+
+        private RecurringDepositSimulationInterest() {}
+
+        public List<RecurringDepositSimulationPostingPeriod> postingPeriods;
+
+        @Schema(example = "112.45")
+        public Float totalInterest;
+    }
+
+    @Schema(description = "RecurringDepositSimulationPostingPeriod")
+    public static final class RecurringDepositSimulationPostingPeriod {
+
+        private RecurringDepositSimulationPostingPeriod() {}
+
+        @Schema(example = "[2026, 3, 1]")
+        public LocalDate fromDate;
+
+        @Schema(example = "[2026, 3, 31]")
+        public LocalDate toDate;
+
+        @Schema(example = "8.99")
+        public Float interestEarned;
+
+        @Schema(example = "719")
+        public Float openingBalance;
+
+        @Schema(example = "728")
+        public Float closingBalance;
     }
 }

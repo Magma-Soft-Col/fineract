@@ -19,6 +19,7 @@
 package org.apache.fineract.portfolio.savings.api;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -57,6 +58,7 @@ import org.apache.fineract.infrastructure.bulkimport.service.BulkImportWorkbookP
 import org.apache.fineract.infrastructure.bulkimport.service.BulkImportWorkbookService;
 import org.apache.fineract.infrastructure.core.api.ApiParameterHelper;
 import org.apache.fineract.infrastructure.core.api.ApiRequestParameterHelper;
+import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.api.JsonQuery;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
 import org.apache.fineract.infrastructure.core.data.PaginationParameters;
@@ -75,8 +77,10 @@ import org.apache.fineract.portfolio.savings.data.DepositAccountData;
 import org.apache.fineract.portfolio.savings.data.RecurringDepositAccountData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountChargeData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
+import org.apache.fineract.portfolio.savings.data.simulation.SimulationResultData;
 import org.apache.fineract.portfolio.savings.service.DepositAccountPreMatureCalculationPlatformService;
 import org.apache.fineract.portfolio.savings.service.DepositAccountReadPlatformService;
+import org.apache.fineract.portfolio.savings.service.DepositSimulationPlatformService;
 import org.apache.fineract.portfolio.savings.service.SavingsAccountChargeReadPlatformService;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -100,6 +104,7 @@ public class RecurringDepositAccountsApiResource {
     private final BulkImportWorkbookService bulkImportWorkbookService;
     private final BulkImportWorkbookPopulatorService bulkImportWorkbookPopulatorService;
     private final SqlValidator sqlValidator;
+    private final DepositSimulationPlatformService depositSimulationPlatformService;
 
     @GET
     @Path("template")
@@ -451,5 +456,25 @@ public class RecurringDepositAccountsApiResource {
         final Long importDocumentId = this.bulkImportWorkbookService.importWorkbook(
                 GlobalEntityType.RECURRING_DEPOSIT_ACCOUNTS_TRANSACTIONS.toString(), uploadedInputStream, fileDetail, locale, dateFormat);
         return this.toApiJsonSerializer.serialize(importDocumentId);
+    }
+
+    @POST
+    @Path("/simulate")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_JSON })
+    @Operation(
+            summary = "Simulate recurring deposit",
+            description = "Simulates a recurring deposit without creating an account."
+                          + "Returns schedule, posting periods and calculated interest."
+                          + "Mandatory Fields: clientId or groupId, productId, submittedOnDate, depositAmount, depositPeriod, depositPeriodFrequencyId"
+                          + "Supports extraordinary deposits as well."
+    )
+    @RequestBody(required = true, content = @Content(schema = @Schema(implementation = RecurringDepositAccountsApiResourceSwagger.PostRecurringDepositAccountsSimulationRequest.class)))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = RecurringDepositAccountsApiResourceSwagger.RecurringDepositSimulationResponse.class)))})
+    public String simulateRecurringDeposit(@Parameter(hidden = true) final String apiRequestBodyAsJson) {
+        final JsonCommand command = JsonCommand.from(apiRequestBodyAsJson, JsonParser.parseString(apiRequestBodyAsJson), fromJsonHelper);
+
+        final SimulationResultData result = this.depositSimulationPlatformService.simulateRecurringDeposit(command);
+        return this.toApiJsonSerializer.serialize(result);
     }
 }

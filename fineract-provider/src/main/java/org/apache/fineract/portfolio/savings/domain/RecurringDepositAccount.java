@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+
+import lombok.Getter;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -79,6 +81,7 @@ import org.apache.fineract.useradministration.domain.AppUser;
 @DiscriminatorValue("300")
 public class RecurringDepositAccount extends SavingsAccount {
 
+    @Getter
     @OneToOne(mappedBy = "account", cascade = CascadeType.ALL)
     private DepositAccountTermAndPreClosure accountTermAndPreClosure;
 
@@ -88,6 +91,7 @@ public class RecurringDepositAccount extends SavingsAccount {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, mappedBy = "account")
     private DepositAccountInterestRateChart chart;
 
+    @Getter
     @OrderBy(value = "installmentNumber, id")
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "account", orphanRemoval = true, fetch = FetchType.LAZY)
     private List<RecurringDepositScheduleInstallment> depositScheduleInstallments = new ArrayList<>();
@@ -184,10 +188,29 @@ public class RecurringDepositAccount extends SavingsAccount {
     private void updateDepositAmount() {
         BigDecimal recurringAmount = getRecurringDetail().mandatoryRecommendedDepositAmount();
         Integer numberOfDepositPeriods = depositScheduleInstallments().size();
+//        BigDecimal extraAmount = getAccountTermAndPreClosure().getDepositAmountExtra();
+//        Integer extraEvery = getAccountTermAndPreClosure().getDepositPeriodExtra();
+
         if (this.accountTermAndPreClosure.depositPeriod() != null && recurringAmount != null && numberOfDepositPeriods != null) {
-            BigDecimal depositAmount = Money.of(product.currency(), recurringAmount).multipliedBy(numberOfDepositPeriods)
-                    .plus(this.minRequiredOpeningBalance).getAmount();
-            accountTermAndPreClosure.updateDepositAmount(depositAmount);
+
+            // version 1 modificada
+//            BigDecimal total = Money.of(product.currency(), recurringAmount).multipliedBy(numberOfDepositPeriods).getAmount();
+//
+//            if (extraAmount != null && extraEvery != null && extraEvery > 0) {
+//                int numberOfExtras = numberOfDepositPeriods / extraEvery;
+//
+//                BigDecimal totalExtras = extraAmount.multiply(BigDecimal.valueOf(numberOfExtras));
+//
+//                total = total.add(totalExtras);
+//            }
+            BigDecimal total = BigDecimal.ZERO;
+            for(RecurringDepositScheduleInstallment inst : this.depositScheduleInstallments) {
+                total = total.add(inst.getDepositAmount(product.currency()).getAmount());
+            }
+
+            total = total.add(this.minRequiredOpeningBalance != null ? this.minRequiredOpeningBalance : BigDecimal.ZERO);
+
+            accountTermAndPreClosure.updateDepositAmount(total);
         } else if (accountTermAndPreClosure.depositAmount() == null) {
             accountTermAndPreClosure.updateDepositAmount(Money.zero(product.currency()).getAmount());
         }
@@ -240,10 +263,21 @@ public class RecurringDepositAccount extends SavingsAccount {
 
         this.nominalAnnualInterestRate = applicableInterestRate;
 
+//        Long productId = getSavingsProductId();
+
+//        if (existeconfiguracionparaesteproducto(productId)) {
+
+            //BigDecimal newRate =
+            // comparo si está en fecha y tomo el valor de la tasa
+            // la multiplico por 12 para simular que sea anual
+//            this.nominalAnnualInterestRate = newRate;
+//            applicableInterestRate = newRate
+//        }
+
         return applicableInterestRate.divide(BigDecimal.valueOf(100L), mc);
     }
 
-    public void updateMaturityDateAndAmount(final MathContext mc, final boolean isPreMatureClosure,
+    public List<PostingPeriod> updateMaturityDateAndAmount(final MathContext mc, final boolean isPreMatureClosure,
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
         final LocalDate maturityDate = calculateMaturityDate();
         LocalDate interestCalculationUpto = null;
@@ -271,6 +305,8 @@ public class RecurringDepositAccount extends SavingsAccount {
             this.accountTermAndPreClosure.updateMaturityDetails(totalDepositAmount.getAmount(), totalInterestPayable.getAmount(),
                     maturityDate);
         }
+
+        return postingPeriods;
     }
 
     public void updateMaturityStatus(final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth,
@@ -322,7 +358,7 @@ public class RecurringDepositAccount extends SavingsAccount {
         return maturityDate;
     }
 
-    private List<PostingPeriod> calculateInterestPayable(final MathContext mc, final LocalDate maturityDate,
+    public List<PostingPeriod> calculateInterestPayable(final MathContext mc, final LocalDate maturityDate,
             final List<SavingsAccountTransaction> transactions, final boolean isPreMatureClosure,
             final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
 
@@ -376,7 +412,7 @@ public class RecurringDepositAccount extends SavingsAccount {
         return allPostingPeriods;
     }
 
-    private List<SavingsAccountTransaction> getTransactions(final LocalDate depositEndDate, final boolean generateFutureTransactions) {
+    public List<SavingsAccountTransaction> getTransactions(final LocalDate depositEndDate, final boolean generateFutureTransactions) {
         List<SavingsAccountTransaction> allTransactions = new ArrayList<>();
         // add existing transactions
         allTransactions.addAll(retreiveOrderedNonInterestPostingTransactions());
@@ -1175,14 +1211,32 @@ public class RecurringDepositAccount extends SavingsAccount {
         int installmentNumber = 1;
         final LocalDate maturityDate = calcualteScheduleTillDate(frequency, recurringEvery);
         final BigDecimal depositAmount = this.recurringDetail.mandatoryRecommendedDepositAmount();
+        final BigDecimal depositAmountExtra = this.accountTermAndPreClosure.getDepositAmountExtra();
+        final Integer extraEvery = this.accountTermAndPreClosure.getDepositPeriodExtra();
         while (DateUtils.isBefore(installmentDate, maturityDate)) {
+
+            BigDecimal totalDeposit = depositAmount;
+            BigDecimal extraDeposit = depositAmountExtra;
+            if (isExtraInstallment(installmentNumber, extraEvery)) {
+                totalDeposit = totalDeposit.add(depositAmountExtra);
+            } else {
+                extraDeposit = null;
+            }
+
             final RecurringDepositScheduleInstallment installment = RecurringDepositScheduleInstallment.installment(this, installmentNumber,
-                    installmentDate, depositAmount);
+                    installmentDate, totalDeposit, extraDeposit);
             addDepositScheduleInstallment(installment);
             installmentDate = DepositAccountUtils.calculateNextDepositDate(installmentDate, frequency, recurringEvery);
             installmentNumber += 1;
         }
         updateDepositAmount();
+    }
+
+    private boolean isExtraInstallment(int installmentNumber, Integer extraEvery) {
+        if (extraEvery == null || extraEvery <= 0) {
+            return false;
+        }
+        return installmentNumber % extraEvery == 0;
     }
 
     private LocalDate calcualteScheduleTillDate(final PeriodFrequencyType frequency, final Integer recurringEvery) {

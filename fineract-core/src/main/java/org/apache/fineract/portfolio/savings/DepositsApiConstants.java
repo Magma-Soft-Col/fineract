@@ -142,6 +142,11 @@ public final class DepositsApiConstants {
     public static final String depositPeriodParamName = "depositPeriod";
     public static final String depositPeriodFrequencyIdParamName = "depositPeriodFrequencyId";
 
+    // extraordinary payment
+    public static final String depositExtraAmountParamName = "depositExtraAmount";
+    public static final String depositPeriodExtraParamName = "depositPeriodExtra";
+    public static final String depositPeriodExtraFrequencyIdParamName = "depositPeriodExtraFrequencyId";
+
     // recurring parameters
     public static final String mandatoryRecommendedDepositAmountParamName = "mandatoryRecommendedDepositAmount";
     public static final String isMandatoryDepositParamName = "isMandatoryDeposit";
@@ -311,7 +316,8 @@ public final class DepositsApiConstants {
                     interestCalculationTypeParamName, interestCalculationDaysInYearTypeParamName, lockinPeriodFrequencyParamName,
                     lockinPeriodFrequencyTypeParamName, chargesParamName, chartsParamName, depositAmountParamName, depositPeriodParamName,
                     depositPeriodFrequencyIdParamName, savingsAccounts, expectedFirstDepositOnDateParamName,
-                    SavingsApiConstants.withHoldTaxParamName, maturityInstructionIdParamName, transferToSavingsIdParamName));
+                    SavingsApiConstants.withHoldTaxParamName, maturityInstructionIdParamName, transferToSavingsIdParamName, depositExtraAmountParamName,
+                    depositPeriodExtraParamName, depositPeriodExtraFrequencyIdParamName));
 
     public static final Set<String> FIXED_DEPOSIT_ACCOUNT_REQUEST_DATA_PARAMETERS = fixedDepositAccountRequestData();
     public static final Set<String> FIXED_DEPOSIT_ACCOUNT_RESPONSE_DATA_PARAMETERS = fixedDepositAccountResponseData();

@@ -30,6 +30,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Optional;
+
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.fineract.infrastructure.core.domain.AbstractAuditableWithUTCDateTimeCustom;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
 import org.apache.fineract.organisation.monetary.domain.MonetaryCurrency;
@@ -67,6 +70,10 @@ public class RecurringDepositScheduleInstallment extends AbstractAuditableWithUT
     @Column(name = "completed_derived", nullable = false)
     private boolean obligationsMet;
 
+    @Getter
+    @Column(name = "deposit_amount_extra", scale = 6, precision = 19, nullable = true)
+    private BigDecimal depositAmountExtra;
+
     @Column(name = "obligations_met_on_date")
     private LocalDate obligationsMetOnDate;
 
@@ -94,11 +101,12 @@ public class RecurringDepositScheduleInstallment extends AbstractAuditableWithUT
      * @param totalPaidLate
      * @param obligationsMet
      * @param obligationsMetOnDate
+     * @param depositAmountExtra
      */
     private RecurringDepositScheduleInstallment(final RecurringDepositAccount account, final Integer installmentNumber,
-            final LocalDate fromDate, final LocalDate dueDate, final BigDecimal depositAmount, final BigDecimal depositAmountCompleted,
-            final BigDecimal totalPaidInAdvance, final BigDecimal totalPaidLate, final boolean obligationsMet,
-            final LocalDate obligationsMetOnDate) {
+                                                final LocalDate fromDate, final LocalDate dueDate, final BigDecimal depositAmount, final BigDecimal depositAmountCompleted,
+                                                final BigDecimal totalPaidInAdvance, final BigDecimal totalPaidLate, final boolean obligationsMet,
+                                                final LocalDate obligationsMetOnDate, BigDecimal depositAmountExtra) {
         this.account = account;
         this.installmentNumber = installmentNumber;
         this.fromDate = fromDate;
@@ -109,6 +117,7 @@ public class RecurringDepositScheduleInstallment extends AbstractAuditableWithUT
         this.totalPaidLate = totalPaidLate;
         this.obligationsMet = obligationsMet;
         this.obligationsMetOnDate = obligationsMetOnDate;
+        this.depositAmountExtra = depositAmountExtra;
     }
 
     public static RecurringDepositScheduleInstallment from(final RecurringDepositAccount account, final Integer installmentNumber,
@@ -116,11 +125,11 @@ public class RecurringDepositScheduleInstallment extends AbstractAuditableWithUT
             final BigDecimal totalPaidInAdvance, final BigDecimal totalPaidLate, final boolean obligationsMet,
             final LocalDate obligationsMetOnDate) {
         return new RecurringDepositScheduleInstallment(account, installmentNumber, fromDate, dueDate, depositAmount, depositAmountCompleted,
-                totalPaidInAdvance, totalPaidLate, obligationsMet, obligationsMetOnDate);
+                totalPaidInAdvance, totalPaidLate, obligationsMet, obligationsMetOnDate, null);
     }
 
     public static RecurringDepositScheduleInstallment installment(final RecurringDepositAccount account, final Integer installmentNumber,
-            final LocalDate dueDate, final BigDecimal depositAmount) {
+            final LocalDate dueDate, final BigDecimal depositAmount, final BigDecimal depositAmountExtra) {
 
         final LocalDate fromDate = null;
         final BigDecimal depositAmountCompleted = null;
@@ -130,7 +139,7 @@ public class RecurringDepositScheduleInstallment extends AbstractAuditableWithUT
         final LocalDate obligationsMetOnDate = null;
 
         return new RecurringDepositScheduleInstallment(account, installmentNumber, fromDate, dueDate, depositAmount, depositAmountCompleted,
-                totalPaidInAdvance, totalPaidLate, obligationsMet, obligationsMetOnDate);
+                totalPaidInAdvance, totalPaidLate, obligationsMet, obligationsMetOnDate, depositAmountExtra);
     }
 
     private BigDecimal defaultToNullIfZero(final BigDecimal value) {

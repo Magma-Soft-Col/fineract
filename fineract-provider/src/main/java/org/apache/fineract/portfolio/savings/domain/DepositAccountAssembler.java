@@ -26,6 +26,9 @@ import static org.apache.fineract.portfolio.savings.DepositsApiConstants.adjustA
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.allowWithdrawalParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.chartIdParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositAmountParamName;
+import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositExtraAmountParamName;
+import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositPeriodExtraFrequencyIdParamName;
+import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositPeriodExtraParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositPeriodFrequencyIdParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.depositPeriodParamName;
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.expectedFirstDepositOnDateParamName;
@@ -404,9 +407,24 @@ public class DepositAccountAssembler {
                 ? DepositAccountOnClosureType.fromInt(accountOnClosureTypeId)
                 : null;
         final Long transferToSavingsId = command.longValueOfParameterNamed(transferToSavingsIdParamName);
-        return DepositAccountTermAndPreClosure.createNew(updatedProductPreClosure, updatedProductTerm, account, depositAmount,
+
+        DepositAccountTermAndPreClosure terms =  DepositAccountTermAndPreClosure.createNew(updatedProductPreClosure, updatedProductTerm, account, depositAmount,
                 maturityAmount, maturityDate, depositPeriod, depositPeriodFrequency, expectedFirstDepositOnDate, accountOnClosureType,
                 trasferInterest, transferToSavingsId);
+
+        if (command.parameterExists(depositExtraAmountParamName)) {
+            final Integer depositPeriodExtra = command.integerValueOfParameterNamed(depositPeriodExtraParamName);
+            final Integer depositPeriodExtraFrequencyId = command.integerValueOfParameterNamed(depositPeriodExtraFrequencyIdParamName);
+            final SavingsPeriodFrequencyType depositPeriodExtraFrequency = SavingsPeriodFrequencyType.fromInt(depositPeriodExtraFrequencyId);
+
+            validateExtraordinarySchedule(depositPeriod, depositPeriodFrequency, depositPeriodExtra, depositPeriodExtraFrequency);
+
+            terms.setDepositPeriodExtra(depositPeriodExtra);
+            terms.setDepositPeriodExtraFrequency(depositPeriodExtraFrequencyId);
+            terms.setDepositAmountExtra(command.bigDecimalValueOfParameterNamed(depositExtraAmountParamName));
+        }
+
+        return terms;
     }
 
     public DepositAccountRecurringDetail assembleAccountRecurringDetail(final JsonCommand command,
@@ -485,5 +503,49 @@ public class DepositAccountAssembler {
         }
 
         return savingsAccountTransactions;
+    }
+
+    public void validateExtraordinarySchedule(Integer depositPeriod, SavingsPeriodFrequencyType depositFrequency, Integer extraEvery, SavingsPeriodFrequencyType extraFrequency) {
+
+        // 1. Si no hay extraordinaria, no validar
+        if (extraEvery == null || extraFrequency == null) {
+            return;
+        }
+
+        // 2. Validaciones básicas
+        if (depositPeriod == null || depositPeriod <= 0) {
+            throw new IllegalArgumentException("Deposit period must be greater than 0");
+        }
+
+        if (extraEvery <= 0) {
+            throw new IllegalArgumentException("Extraordinary frequency must be greater than 0");
+        }
+
+        if (depositFrequency == null || depositFrequency.isInvalid()) {
+            throw new IllegalArgumentException("Invalid deposit frequency");
+        }
+
+        if (extraFrequency.isInvalid()) {
+            throw new IllegalArgumentException("Invalid extraordinary frequency");
+        }
+
+        // 3. Validar misma unidad
+        if (!depositFrequency.equals(extraFrequency)) {
+            throw new IllegalArgumentException(
+                    "Extraordinary frequency must use the same time unit as deposit frequency");
+        }
+
+        // 4. Validar que el plazo sea múltiplo de la extraordinaria
+        if (depositPeriod % extraEvery != 0) {
+            throw new IllegalArgumentException(
+                    "Deposit term (" + depositPeriod + ") must be divisible by extraordinary frequency (" + extraEvery + ")");
+        }
+
+        // 5. (Opcional pero recomendado) que no sea más frecuente que el depósito base
+        // Ej: depósito mensual (1), extra cada 0.5 → no permitido
+        if (extraEvery < 1) {
+            throw new IllegalArgumentException(
+                    "Extraordinary frequency cannot be more frequent than base deposit frequency");
+        }
     }
 }
