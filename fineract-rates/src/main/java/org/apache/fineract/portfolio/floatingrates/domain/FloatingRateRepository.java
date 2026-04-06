@@ -33,4 +33,6 @@ public interface FloatingRateRepository extends JpaRepository<FloatingRate, Long
             + " and periods.isDifferentialToBaseLendingRate = true")
     Collection<FloatingRate> retrieveFloatingRatesLinkedToBLR();
 
+    FloatingRate findBySavingsProductId(Integer savingsProductId);
+
 }

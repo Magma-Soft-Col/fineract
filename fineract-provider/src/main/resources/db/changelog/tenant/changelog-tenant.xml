@@ -238,4 +238,5 @@
     <include file="parts/0217_force_withdrawal_configs.xml" relativeToChangelogFile="true" />
     <include file="parts/0218_standardize_character_set_and_collation.xml" relativeToChangelogFile="true" />
     <include file="parts/0219_add_columns_extra_amount.xml" relativeToChangelogFile="true"/>
+    <include file="parts/0220_add_columns_m_rate_table.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -43,7 +43,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import jakarta.persistence.Transient;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.DataValidatorBuilder;
@@ -58,6 +60,8 @@ import org.apache.fineract.portfolio.calendar.domain.Calendar;
 import org.apache.fineract.portfolio.calendar.service.CalendarUtils;
 import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
+import org.apache.fineract.portfolio.floatingrates.domain.FloatingRate;
+import org.apache.fineract.portfolio.floatingrates.domain.FloatingRatePeriod;
 import org.apache.fineract.portfolio.group.domain.Group;
 import org.apache.fineract.portfolio.interestratechart.domain.InterestRateChart;
 import org.apache.fineract.portfolio.savings.DepositAccountOnClosureType;
@@ -95,6 +99,11 @@ public class RecurringDepositAccount extends SavingsAccount {
     @OrderBy(value = "installmentNumber, id")
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "account", orphanRemoval = true, fetch = FetchType.LAZY)
     private List<RecurringDepositScheduleInstallment> depositScheduleInstallments = new ArrayList<>();
+
+    @Transient
+    @Setter
+    @Getter
+    private FloatingRate floatingRate;
 
     protected RecurringDepositAccount() {
         //
@@ -263,22 +272,34 @@ public class RecurringDepositAccount extends SavingsAccount {
 
         this.nominalAnnualInterestRate = applicableInterestRate;
 
-//        Long productId = getSavingsProductId();
 
-//        if (existeconfiguracionparaesteproducto(productId)) {
+        if (this.floatingRate != null) {
+            List<FloatingRatePeriod> periods = this.floatingRate.getFloatingRatePeriods()
+                    .stream()
+                    .sorted(Comparator.comparing(FloatingRatePeriod::getFromDate))
+                    .toList();
 
-            //BigDecimal newRate =
-            // comparo si está en fecha y tomo el valor de la tasa
-            // la multiplico por 12 para simular que sea anual
-//            this.nominalAnnualInterestRate = newRate;
-//            applicableInterestRate = newRate
-//        }
+            BigDecimal floatingRateValue = BigDecimal.ZERO;
+
+            for (FloatingRatePeriod period : periods) {
+                if (!period.getFromDate().isAfter(interestPostingUpToDate)) {
+                    floatingRateValue = period.getInterestRate();
+                } else {
+                    break;
+                }
+            }
+
+            BigDecimal newRate = floatingRateValue;
+
+            this.nominalAnnualInterestRate = newRate;
+            applicableInterestRate = newRate;
+        }
 
         return applicableInterestRate.divide(BigDecimal.valueOf(100L), mc);
     }
 
     public List<PostingPeriod> updateMaturityDateAndAmount(final MathContext mc, final boolean isPreMatureClosure,
-            final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
+                                                           final boolean isSavingsInterestPostingAtCurrentPeriodEnd, final Integer financialYearBeginningMonth) {
         final LocalDate maturityDate = calculateMaturityDate();
         LocalDate interestCalculationUpto = null;
         List<SavingsAccountTransaction> allTransactions = null;
@@ -383,7 +404,7 @@ public class RecurringDepositAccount extends SavingsAccount {
         Money periodStartingBalance = Money.zero(currency);
 
         final SavingsInterestCalculationType interestCalculationType = SavingsInterestCalculationType.fromInt(this.interestCalculationType);
-        final BigDecimal interestRateAsFraction = getEffectiveInterestRateAsFraction(mc, maturityDate, isPreMatureClosure);
+        BigDecimal interestRateAsFraction = getEffectiveInterestRateAsFraction(mc, maturityDate, isPreMatureClosure);
         final Collection<Long> interestPostTransactions = this.savingsHelper.fetchPostInterestTransactionIds(getId());
         boolean isInterestTransfer = false;
         final Money minBalanceForInterestCalculation = Money.of(getCurrency(), minBalanceForInterestCalculation());
@@ -394,6 +415,11 @@ public class RecurringDepositAccount extends SavingsAccount {
             if (PostedAsOnDates.contains(periodInterval.endDate())) {
                 isUserPosting = true;
             }
+
+            if (this.floatingRate != null) {
+                interestRateAsFraction = getEffectiveInterestRateAsFraction(mc, periodInterval.endDate(), isUserPosting);
+            }
+
             final PostingPeriod postingPeriod = PostingPeriod.createFrom(periodInterval, periodStartingBalance,
                     savingsAccountTransactionDetailsForPostingPeriodList, this.currency, compoundingPeriodType, interestCalculationType,
                     interestRateAsFraction, daysInYearType.getValue(), maturityDate, interestPostTransactions, isInterestTransfer,

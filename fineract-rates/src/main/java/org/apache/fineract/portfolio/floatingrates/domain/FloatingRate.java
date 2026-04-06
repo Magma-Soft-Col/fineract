@@ -25,6 +25,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -60,6 +61,9 @@ public class FloatingRate extends AbstractAuditableWithUTCDateTimeCustom<Long> {
     @OrderBy(value = "fromDate,id")
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "floatingRate", orphanRemoval = true, fetch = FetchType.EAGER)
     private List<FloatingRatePeriod> floatingRatePeriods;
+
+    @Column(name = "savings_product_id", unique = true, nullable = true)
+    private Integer savingsProductId;
 
     /*
      * Deprecated since common Auditable fields were introduced. Columns and data left untouched to help migration.

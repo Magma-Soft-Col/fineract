@@ -15,6 +15,8 @@ import org.apache.fineract.portfolio.calendar.domain.CalendarInstanceRepository;
 import org.apache.fineract.portfolio.calendar.domain.CalendarType;
 import org.apache.fineract.portfolio.calendar.service.CalendarUtils;
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
+import org.apache.fineract.portfolio.floatingrates.domain.FloatingRate;
+import org.apache.fineract.portfolio.floatingrates.domain.FloatingRateRepository;
 import org.apache.fineract.portfolio.group.domain.Group;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.data.DepositAccountDataValidator;
@@ -47,6 +49,7 @@ public class DepositSimulationPlatformService {
     private final DepositAccountDataValidator depositAccountDataValidator;
     private final ConfigurationDomainService configurationDomainService;
     private final CalendarInstanceRepository calendarInstanceRepository;
+    private final FloatingRateRepository floatingRateRepository;
 
     public SimulationResultData simulateRecurringDeposit(final JsonCommand command) {
 
@@ -71,7 +74,8 @@ public class DepositSimulationPlatformService {
         frequency = frequency == -1 ? 1 : frequency;
 
         account.generateSchedule(frequencyType, frequency, calendar);
-
+        FloatingRate rate = floatingRateRepository.findBySavingsProductId(account.getSavingsProductId().intValue());
+        account.setFloatingRate(rate);
         List<PostingPeriod> data = account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
         account.validateApplicableInterestRate();
         return factoryDataSimulation(data, account);
@@ -144,7 +148,7 @@ public class DepositSimulationPlatformService {
         for (RecurringDepositScheduleInstallment inst : account.getDepositScheduleInstallments()) {
             SimulationResultData.Installment installment = new SimulationResultData.Installment();
 
-            PostingPeriod period = data.stream().filter(item -> item.getPeriodInterval().startDate().equals(inst.dueDate())).findFirst().orElse(null);
+            PostingPeriod period = data.stream().filter(item -> item.getPeriodInterval().contains(inst.dueDate())).findFirst().orElse(null);
             cumulativeAmount = cumulativeAmount.add(period != null ? period.getInterestEarnedRounded().getAmount() : BigDecimal.ZERO);
             installment.setInstallmentNumber(inst.installmentNumber());
             installment.setInstallmentDate(inst.dueDate());
