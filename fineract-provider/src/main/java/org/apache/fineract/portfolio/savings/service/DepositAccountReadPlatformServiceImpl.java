@@ -29,8 +29,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
 import lombok.RequiredArgsConstructor;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
 import org.apache.fineract.infrastructure.core.data.PaginationParameters;
@@ -43,6 +46,7 @@ import org.apache.fineract.infrastructure.core.service.PaginationHelper;
 import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
 import org.apache.fineract.infrastructure.security.service.PlatformSecurityContext;
 import org.apache.fineract.organisation.monetary.data.CurrencyData;
+import org.apache.fineract.organisation.monetary.domain.Money;
 import org.apache.fineract.organisation.staff.data.StaffData;
 import org.apache.fineract.organisation.staff.service.StaffReadPlatformService;
 import org.apache.fineract.portfolio.account.PortfolioAccountType;
@@ -71,6 +75,7 @@ import org.apache.fineract.portfolio.paymenttype.data.PaymentTypeData;
 import org.apache.fineract.portfolio.paymenttype.service.PaymentTypeReadService;
 import org.apache.fineract.portfolio.savings.DepositAccountOnClosureType;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
+import org.apache.fineract.portfolio.savings.RecurringDepositScheduleMapper;
 import org.apache.fineract.portfolio.savings.SavingsAccountTransactionType;
 import org.apache.fineract.portfolio.savings.SavingsCompoundingInterestPeriodType;
 import org.apache.fineract.portfolio.savings.SavingsInterestCalculationDaysInYearType;
@@ -89,6 +94,9 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountStatusEnumData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountSummaryData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionEnumData;
+import org.apache.fineract.portfolio.savings.data.simulation.RecurringDepositScheduleInstallmentData;
+import org.apache.fineract.portfolio.savings.domain.RecurringDepositScheduleInstallment;
+import org.apache.fineract.portfolio.savings.domain.RecurringDepositScheduleInstallmentRepository;
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountStatusType;
 import org.apache.fineract.portfolio.savings.exception.DepositAccountNotFoundException;
 import org.apache.fineract.portfolio.tax.data.TaxGroupData;
@@ -128,6 +136,8 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
     private final DropdownReadPlatformService dropdownReadPlatformService;
     private final CalendarReadPlatformService calendarReadPlatformService;
     private final PaymentTypeReadService paymentTypeReadPlatformService;
+    private final RecurringDepositScheduleInstallmentRepository recurringDepositScheduleInstallmentRepository;
+    private final RecurringDepositScheduleMapper recurringDepositScheduleMapper;
 
     @Override
     public Collection<DepositAccountData> retrieveAll(final DepositAccountType depositAccountType,
@@ -505,6 +515,23 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
 
         return this.jdbcTemplate.queryForList(sb.toString(), SavingsAccountStatusType.ACTIVE.getValue(),
                 CalendarEntityType.SAVINGS.getValue(), CalendarType.COLLECTION.getValue());
+    }
+
+    @Override
+    public List<RecurringDepositScheduleInstallmentData> retrieveMandatorySchedule(Long accountId, CurrencyData currencyData) {
+        List<RecurringDepositScheduleInstallment> resultEntity = this.recurringDepositScheduleInstallmentRepository.retrieveAllByAccountId(accountId);
+        List<RecurringDepositScheduleInstallmentData> resultData = this.recurringDepositScheduleMapper.map(resultEntity);
+
+        AtomicReference<BigDecimal> cumulatedAmount = new AtomicReference<>(BigDecimal.ZERO);
+        resultData.forEach(data -> {
+            data.init();
+            BigDecimal realDeposit = Money.of(currencyData, data.getAmount().subtract(data.getExtraAmount())).getAmount();
+            cumulatedAmount.set(Money.of(currencyData, cumulatedAmount.get().add(data.getAmount()).add(data.getInterestAmount())).getAmount());
+            data.setCumulatedAmount(cumulatedAmount.get());
+            data.setAmount(realDeposit);
+        });
+
+        return resultData;
     }
 
     private DepositAccountMapper getDepositAccountMapper(final DepositAccountType depositAccountType) {

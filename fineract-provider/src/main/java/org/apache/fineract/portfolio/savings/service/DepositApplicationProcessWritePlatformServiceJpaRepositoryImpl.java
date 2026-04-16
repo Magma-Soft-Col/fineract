@@ -24,6 +24,8 @@ import static org.apache.fineract.portfolio.savings.DepositsApiConstants.recurri
 import static org.apache.fineract.portfolio.savings.DepositsApiConstants.transferInterestToSavingsParamName;
 
 import jakarta.persistence.PersistenceException;
+
+import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.LocalDate;
 import java.time.temporal.ChronoField;
@@ -70,6 +72,8 @@ import org.apache.fineract.portfolio.client.domain.Client;
 import org.apache.fineract.portfolio.client.domain.ClientRepositoryWrapper;
 import org.apache.fineract.portfolio.client.exception.ClientNotActiveException;
 import org.apache.fineract.portfolio.common.domain.PeriodFrequencyType;
+import org.apache.fineract.portfolio.floatingrates.domain.FloatingRate;
+import org.apache.fineract.portfolio.floatingrates.domain.FloatingRateRepository;
 import org.apache.fineract.portfolio.group.domain.Group;
 import org.apache.fineract.portfolio.group.domain.GroupRepository;
 import org.apache.fineract.portfolio.group.exception.CenterNotActiveException;
@@ -92,6 +96,7 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountChargeAssemble
 import org.apache.fineract.portfolio.savings.domain.SavingsAccountRepositoryWrapper;
 import org.apache.fineract.portfolio.savings.domain.SavingsProduct;
 import org.apache.fineract.portfolio.savings.domain.SavingsProductRepository;
+import org.apache.fineract.portfolio.savings.domain.interest.PostingPeriod;
 import org.apache.fineract.portfolio.savings.exception.SavingsProductNotFoundException;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.dao.DataAccessException;
@@ -121,6 +126,7 @@ public class DepositApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
     private final ConfigurationDomainService configurationDomainService;
     private final AccountNumberFormatRepositoryWrapper accountNumberFormatRepository;
     private final BusinessEventNotifierService businessEventNotifierService;
+    private final FloatingRateRepository floatingRateRepository;
 
     /*
      * Guaranteed to throw an exception no matter what the data integrity issue is.
@@ -247,8 +253,14 @@ public class DepositApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
             frequency = frequency == -1 ? 1 : frequency;
             account.generateSchedule(frequencyType, frequency, calendar);
             final boolean isPreMatureClosure = false;
-            account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd,
-                    financialYearBeginningMonth);
+            FloatingRate rate = floatingRateRepository.findBySavingsProductId(account.getSavingsProductId().intValue());
+            account.setFloatingRate(rate);
+            List<PostingPeriod> periods = account.updateMaturityDateAndAmount(mc, isPreMatureClosure, isSavingsInterestPostingAtCurrentPeriodEnd, financialYearBeginningMonth);
+            account.getDepositScheduleInstallments().forEach(item -> {
+                PostingPeriod period = periods.stream().filter(x -> x.getPeriodInterval().contains(item.dueDate())).findFirst().orElse(null);
+                item.setInterestAmount(period != null ? period.getInterestEarned() != null ? period.getInterestEarned().getAmount() : BigDecimal.ZERO : BigDecimal.ZERO);
+                item.setInterestRate(period != null ? period.getInterestRateAsFraction() != null ? period.getInterestRateAsFraction() : BigDecimal.ZERO : BigDecimal.ZERO);
+            });
             account.validateApplicableInterestRate();
             savingAccountRepository.save(account);
             businessEventNotifierService.notifyPostBusinessEvent(new RecurringDepositAccountCreateBusinessEvent(account));

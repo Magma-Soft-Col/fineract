@@ -46,15 +46,18 @@ public class RecurringDepositScheduleInstallment extends AbstractAuditableWithUT
     @JoinColumn(name = "savings_account_id")
     private RecurringDepositAccount account;
 
+    @Getter
     @Column(name = "installment", nullable = false)
     private Integer installmentNumber;
 
     @Column(name = "fromdate", nullable = true)
     private LocalDate fromDate;
 
+    @Getter
     @Column(name = "duedate", nullable = false)
     private LocalDate dueDate;
 
+    @Getter
     @Column(name = "deposit_amount", scale = 6, precision = 19, nullable = true)
     private BigDecimal depositAmount;
 
@@ -73,6 +76,16 @@ public class RecurringDepositScheduleInstallment extends AbstractAuditableWithUT
     @Getter
     @Column(name = "deposit_amount_extra", scale = 6, precision = 19, nullable = true)
     private BigDecimal depositAmountExtra;
+
+    @Getter
+    @Setter
+    @Column(name = "interest_rate", scale = 6, precision = 19, nullable = true)
+    private BigDecimal interestRate;
+
+    @Getter
+    @Setter
+    @Column(name = "interest_amount", scale = 6, precision = 19, nullable = true)
+    private BigDecimal interestAmount;
 
     @Column(name = "obligations_met_on_date")
     private LocalDate obligationsMetOnDate;

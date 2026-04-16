@@ -21,7 +21,10 @@ package org.apache.fineract.portfolio.savings.data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
+
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.fineract.infrastructure.core.data.EnumOptionData;
@@ -82,6 +85,10 @@ public final class RecurringDepositAccountData extends DepositAccountData {
     private String locale;
     private LocalDate submittedOnDate;
     private Long depositPeriodFrequencyId;
+
+    // Mandatory Schedule
+    @Setter
+    private List<Object> schedule;
 
     public static RecurringDepositAccountData importInstance(Long clientId, Long productId, Long fieldOfficerId, LocalDate submittedOnDate,
             EnumOptionData interestCompoundingPeriodTypeEnum, EnumOptionData interestPostingPeriodTypeEnum,

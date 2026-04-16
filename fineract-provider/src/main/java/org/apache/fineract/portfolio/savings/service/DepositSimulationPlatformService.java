@@ -20,6 +20,7 @@ import org.apache.fineract.portfolio.floatingrates.domain.FloatingRateRepository
 import org.apache.fineract.portfolio.group.domain.Group;
 import org.apache.fineract.portfolio.savings.DepositAccountType;
 import org.apache.fineract.portfolio.savings.data.DepositAccountDataValidator;
+import org.apache.fineract.portfolio.savings.data.simulation.RecurringDepositScheduleInstallmentData;
 import org.apache.fineract.portfolio.savings.data.simulation.SimulationResultData;
 import org.apache.fineract.portfolio.savings.domain.DepositAccountAssembler;
 import org.apache.fineract.portfolio.savings.domain.RecurringDepositAccount;
@@ -146,7 +147,7 @@ public class DepositSimulationPlatformService {
         MonetaryCurrency currency = account.getCurrency();
         BigDecimal cumulativeAmount = BigDecimal.ZERO;
         for (RecurringDepositScheduleInstallment inst : account.getDepositScheduleInstallments()) {
-            SimulationResultData.Installment installment = new SimulationResultData.Installment();
+            RecurringDepositScheduleInstallmentData installment = new RecurringDepositScheduleInstallmentData();
 
             PostingPeriod period = data.stream().filter(item -> item.getPeriodInterval().contains(inst.dueDate())).findFirst().orElse(null);
             cumulativeAmount = cumulativeAmount.add(period != null ? period.getInterestEarnedRounded().getAmount() : BigDecimal.ZERO);
