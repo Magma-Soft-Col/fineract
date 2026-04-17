@@ -259,7 +259,7 @@ public class DepositApplicationProcessWritePlatformServiceJpaRepositoryImpl impl
             account.getDepositScheduleInstallments().forEach(item -> {
                 PostingPeriod period = periods.stream().filter(x -> x.getPeriodInterval().contains(item.dueDate())).findFirst().orElse(null);
                 item.setInterestAmount(period != null ? period.getInterestEarned() != null ? period.getInterestEarned().getAmount() : BigDecimal.ZERO : BigDecimal.ZERO);
-                item.setInterestRate(period != null ? period.getInterestRateAsFraction() != null ? period.getInterestRateAsFraction() : BigDecimal.ZERO : BigDecimal.ZERO);
+                item.setInterestRate(period != null ? period.getInterestRateAsFraction() != null ? period.getInterestRateAsFraction().multiply(BigDecimal.valueOf(100)) : BigDecimal.ZERO : BigDecimal.ZERO);
             });
             account.validateApplicableInterestRate();
             savingAccountRepository.save(account);
