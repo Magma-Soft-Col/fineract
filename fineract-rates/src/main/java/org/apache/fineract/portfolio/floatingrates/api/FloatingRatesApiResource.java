@@ -63,7 +63,7 @@ public class FloatingRatesApiResource {
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
     @Operation(summary = "Create a new Floating Rate", description = "Creates a new Floating Rate\n" + "Mandatory Fields: name\n"
-            + "Optional Fields: isBaseLendingRate, isActive, ratePeriods")
+            + "Optional Fields: isBaseLendingRate, isActive, ratePeriods, savingsProductId")
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = FloatingRateRequest.class)))
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = FloatingRatesApiResourceSwagger.PostFloatingRatesResponse.class)))
     public CommandProcessingResult createFloatingRate(@Parameter(hidden = true) final FloatingRateRequest floatingRateRequest) {
@@ -96,7 +96,8 @@ public class FloatingRatesApiResource {
     @Path("{floatingRateId}")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    @Operation(summary = "Update Floating Rate", description = "Updates new Floating Rate. Rate Periods in the past cannot be modified. All the future rateperiods would be replaced with the new ratePeriods data sent.")
+    @Operation(summary = "Update Floating Rate", description = "Updates new Floating Rate. Rate Periods in the past cannot be modified. All the future rateperiods would be replaced with the new ratePeriods data sent.\n"
+            + "Optional Fields: savingsProductId (nullable to unlink)")
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = FloatingRateRequest.class)))
     @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = FloatingRatesApiResourceSwagger.PutFloatingRatesFloatingRateIdResponse.class)))
     public CommandProcessingResult updateFloatingRate(

@@ -34,6 +34,7 @@ public class FloatingRateData implements Comparable<FloatingRateData>, Serializa
     private final String name;
     private final Boolean isBaseLendingRate;
     private final Boolean isActive;
+    private final Integer savingsProductId;
     private final String createdBy;
     private final OffsetDateTime createdOn;
     private final String modifiedBy;
@@ -41,13 +42,14 @@ public class FloatingRateData implements Comparable<FloatingRateData>, Serializa
     private final List<FloatingRatePeriodData> ratePeriods;
     private final List<EnumOptionData> interestRateFrequencyTypeOptions;
 
-    public FloatingRateData(Long id, String name, Boolean isBaseLendingRate, Boolean isActive, String createdBy, OffsetDateTime createdOn,
-            String modifiedBy, OffsetDateTime modifiedOn, List<FloatingRatePeriodData> ratePeriods,
+    public FloatingRateData(Long id, String name, Boolean isBaseLendingRate, Boolean isActive, Integer savingsProductId, String createdBy,
+            OffsetDateTime createdOn, String modifiedBy, OffsetDateTime modifiedOn, List<FloatingRatePeriodData> ratePeriods,
             List<EnumOptionData> interestRateFrequencyTypeOptions) {
         this.id = id;
         this.name = name;
         this.isBaseLendingRate = isBaseLendingRate;
         this.isActive = isActive;
+        this.savingsProductId = savingsProductId;
         this.createdBy = createdBy;
         this.createdOn = createdOn;
         this.modifiedBy = modifiedBy;
@@ -101,6 +103,6 @@ public class FloatingRateData implements Comparable<FloatingRateData>, Serializa
 
     public static FloatingRateData toTemplate(List<EnumOptionData> interestRateFrequencyTypeOptions) {
         // TODO Auto-generated method stub
-        return new FloatingRateData(null, null, false, true, null, null, null, null, null, interestRateFrequencyTypeOptions);
+        return new FloatingRateData(null, null, false, true, null, null, null, null, null, null, interestRateFrequencyTypeOptions);
     }
 }

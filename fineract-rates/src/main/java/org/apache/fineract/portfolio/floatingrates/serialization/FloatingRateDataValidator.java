@@ -54,8 +54,9 @@ public class FloatingRateDataValidator {
     public static final String LOCALE = "locale";
     public static final String DATE_FORMAT = "dateFormat";
     public static final String FLOATINGRATE = "floatingrate";
+    public static final String SAVINGS_PRODUCT_ID = "savingsProductId";
     private static final Set<String> SUPPORTED_PARAMETERS_FOR_FLOATING_RATES = new HashSet<>(
-            Arrays.asList(NAME, IS_BASE_LENDING_RATE, IS_ACTIVE, RATE_PERIODS));
+            Arrays.asList(NAME, IS_BASE_LENDING_RATE, IS_ACTIVE, RATE_PERIODS, SAVINGS_PRODUCT_ID));
     private static final Set<String> SUPPORTED_PARAMETERS_FOR_FLOATING_RATE_PERIODS = new HashSet<>(
             Arrays.asList(FROM_DATE, INTEREST_RATE, IS_DIFFERENTIAL_TO_BASE_LENDING_RATE, LOCALE, DATE_FORMAT));
     private final FromJsonHelper fromApiJsonHelper;
@@ -107,6 +108,7 @@ public class FloatingRateDataValidator {
         if (isBaseLendingRate == null) {
             isBaseLendingRate = false;
         }
+        validateSavingsProductId(baseDataValidator, element);
         validateRatePeriods(baseDataValidator, element, isBaseLendingRate, false);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
@@ -233,9 +235,19 @@ public class FloatingRateDataValidator {
             }
         }
 
+        validateSavingsProductId(baseDataValidator, element);
         validateRatePeriods(baseDataValidator, element, isBaseLendingRate, isBLRModifiedAsNonBLR);
 
         throwExceptionIfValidationWarningsExist(dataValidationErrors);
+    }
+
+    private void validateSavingsProductId(DataValidatorBuilder baseDataValidator, JsonElement element) {
+        if (this.fromApiJsonHelper.parameterExists(SAVINGS_PRODUCT_ID, element)) {
+            final Integer savingsProductId = this.fromApiJsonHelper.extractIntegerSansLocaleNamed(SAVINGS_PRODUCT_ID, element);
+            if (savingsProductId != null) {
+                baseDataValidator.reset().parameter(SAVINGS_PRODUCT_ID).value(savingsProductId).integerGreaterThanZero();
+            }
+        }
     }
 
     private void throwExceptionIfValidationWarningsExist(final List<ApiParameterError> dataValidationErrors) {

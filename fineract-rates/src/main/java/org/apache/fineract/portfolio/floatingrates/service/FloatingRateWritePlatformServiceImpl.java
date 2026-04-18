@@ -96,6 +96,16 @@ public class FloatingRateWritePlatformServiceImpl implements FloatingRateWritePl
             throw new PlatformDataIntegrityException("error.msg.floatingrates.duplicate.name",
                     "Floating Rate with name `" + name + "` already exists", "name", name);
         }
+        final String causeMessage = realCause.getMessage();
+        if (causeMessage != null) {
+            final String lower = causeMessage.toLowerCase();
+            if (lower.contains("idx_unique_m_floating_rates_savings_product_id")
+                    || (lower.contains("m_floating_rates") && lower.contains("savings_product_id") && lower.contains("duplicate"))) {
+                throw new PlatformDataIntegrityException("error.msg.floatingrates.duplicate.savings.product",
+                        "This savings product is already linked to another floating rate", "savingsProductId",
+                        command.parameterExists("savingsProductId") ? command.integerValueOfParameterNamed("savingsProductId") : null);
+            }
+        }
         if (realCause.getMessage().contains("unq_rate_period")) {
             throw new PlatformDataIntegrityException("error.msg.floatingrates.duplicate.active.fromdate",
                     "Attempt to add multiple floating rate periods with same fromdate", "fromdate", "");

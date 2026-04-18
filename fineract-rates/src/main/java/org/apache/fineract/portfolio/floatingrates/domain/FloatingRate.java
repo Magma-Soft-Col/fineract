@@ -25,19 +25,14 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.domain.AbstractAuditableWithUTCDateTimeCustom;
 import org.apache.fineract.infrastructure.core.serialization.JsonParserHelper;
@@ -77,11 +72,13 @@ public class FloatingRate extends AbstractAuditableWithUTCDateTimeCustom<Long> {
 
     }
 
-    public FloatingRate(String name, boolean isBaseLendingRate, boolean isActive, List<FloatingRatePeriod> floatingRatePeriods) {
+    public FloatingRate(String name, boolean isBaseLendingRate, boolean isActive, List<FloatingRatePeriod> floatingRatePeriods,
+            Integer savingsProductId) {
         this.name = name;
         this.isBaseLendingRate = isBaseLendingRate;
         this.isActive = isActive;
         this.floatingRatePeriods = floatingRatePeriods;
+        this.savingsProductId = savingsProductId;
         if (floatingRatePeriods != null) {
             for (FloatingRatePeriod ratePeriod : floatingRatePeriods) {
                 ratePeriod.updateFloatingRate(this);
@@ -96,8 +93,12 @@ public class FloatingRate extends AbstractAuditableWithUTCDateTimeCustom<Long> {
                 && command.booleanPrimitiveValueOfParameterNamed("isBaseLendingRate");
         final boolean isActive = !command.parameterExists("isActive") || command.booleanPrimitiveValueOfParameterNamed("isActive");
         final List<FloatingRatePeriod> floatingRatePeriods = getRatePeriods(command);
+        Integer savingsProductId = null;
+        if (command.parameterExists("savingsProductId")) {
+            savingsProductId = command.integerValueSansLocaleOfParameterNamed("savingsProductId");
+        }
 
-        return new FloatingRate(name, isBaseLendingRate, isActive, floatingRatePeriods);
+        return new FloatingRate(name, isBaseLendingRate, isActive, floatingRatePeriods, savingsProductId);
     }
 
     private static List<FloatingRatePeriod> getRatePeriods(final JsonCommand command) {
@@ -136,6 +137,10 @@ public class FloatingRate extends AbstractAuditableWithUTCDateTimeCustom<Long> {
         return this.floatingRatePeriods;
     }
 
+    public Integer getSavingsProductId() {
+        return this.savingsProductId;
+    }
+
     public Map<String, Object> update(final JsonCommand command) {
 
         final Map<String, Object> actualChanges = new LinkedHashMap<>(9);
@@ -156,6 +161,12 @@ public class FloatingRate extends AbstractAuditableWithUTCDateTimeCustom<Long> {
             final boolean newValue = command.booleanPrimitiveValueOfParameterNamed("isActive");
             actualChanges.put("isActive", newValue);
             this.isActive = newValue;
+        }
+
+        if (command.isChangeInIntegerParameterNamedWithNullCheck("savingsProductId", this.savingsProductId)) {
+            final Integer newValue = command.integerValueOfParameterNamed("savingsProductId");
+            actualChanges.put("savingsProductId", newValue);
+            this.savingsProductId = newValue;
         }
 
         final List<FloatingRatePeriod> newRatePeriods = getRatePeriods(command);

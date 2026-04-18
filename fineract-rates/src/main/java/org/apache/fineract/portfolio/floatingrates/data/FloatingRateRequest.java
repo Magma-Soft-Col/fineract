@@ -37,5 +37,6 @@ public class FloatingRateRequest implements Serializable {
     private Boolean isBaseLendingRate;
     private Boolean isActive;
     private List<FloatingRatePeriodRequest> ratePeriods;
+    private Integer savingsProductId;
 
 }

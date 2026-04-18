@@ -100,6 +100,7 @@ public class FloatingRatesReadPlatformServiceImpl implements FloatingRatesReadPl
         private static final String FLOATING_RATE_SCHEMA = """
                 rate.id as id, rate.name as name,
                 rate.is_base_lending_rate as isBaseLendingRate, rate.is_active as isActive,
+                rate.savings_product_id as savingsProductId,
                 crappu.username as createdBy, rate.created_date as createdOn,
                 rate.created_on_utc as createdOnUTC, moappu.username as modifiedBy,
                 rate.lastmodified_date as modifiedOn, rate.last_modified_on_utc as modifiedOnUTC
@@ -116,6 +117,7 @@ public class FloatingRatesReadPlatformServiceImpl implements FloatingRatesReadPl
             final String name = rs.getString("name");
             final boolean isBaseLendingRate = rs.getBoolean("isBaseLendingRate");
             final boolean isActive = rs.getBoolean("isActive");
+            final Integer savingsProductId = JdbcSupport.getInteger(rs, "savingsProductId");
             final String createdBy = rs.getString("createdBy");
             final OffsetDateTime createdOnLocal = JdbcSupport.getOffsetDateTime(rs, "createdOn");
             final OffsetDateTime createdOnUtc = JdbcSupport.getOffsetDateTime(rs, "createdOnUTC");
@@ -131,8 +133,8 @@ public class FloatingRatesReadPlatformServiceImpl implements FloatingRatesReadPl
                         + " where period.is_active = true and period.floating_rates_id = ? " + " order by period.from_date desc ";
                 ratePeriods = jdbcTemplate.query(sql, ratePeriodMapper, id); // NOSONAR
             }
-            return new FloatingRateData(id, name, isBaseLendingRate, isActive, createdBy, createdOn, modifiedBy, modifiedOn, ratePeriods,
-                    null);
+            return new FloatingRateData(id, name, isBaseLendingRate, isActive, savingsProductId, createdBy, createdOn, modifiedBy,
+                    modifiedOn, ratePeriods, null);
         }
 
         public String schema() {
@@ -188,7 +190,7 @@ public class FloatingRatesReadPlatformServiceImpl implements FloatingRatesReadPl
             final Long id = rs.getLong("id");
             final String name = rs.getString("name");
             final boolean isBaseLendingRate = rs.getBoolean("isBaseLendingRate");
-            return new FloatingRateData(id, name, isBaseLendingRate, true, null, null, null, null, null, null);
+            return new FloatingRateData(id, name, isBaseLendingRate, true, null, null, null, null, null, null, null);
         }
 
         public String schema() {
