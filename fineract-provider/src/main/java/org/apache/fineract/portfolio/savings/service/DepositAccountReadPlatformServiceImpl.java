@@ -41,6 +41,7 @@ import org.apache.fineract.infrastructure.core.data.PaginationParametersDataVali
 import org.apache.fineract.infrastructure.core.domain.ExternalId;
 import org.apache.fineract.infrastructure.core.domain.JdbcSupport;
 import org.apache.fineract.infrastructure.core.service.DateUtils;
+import org.apache.fineract.infrastructure.core.service.MathUtil;
 import org.apache.fineract.infrastructure.core.service.Page;
 import org.apache.fineract.infrastructure.core.service.PaginationHelper;
 import org.apache.fineract.infrastructure.core.service.database.DatabaseSpecificSQLGenerator;
@@ -526,7 +527,9 @@ public class DepositAccountReadPlatformServiceImpl implements DepositAccountRead
         resultData.forEach(data -> {
             data.init();
             BigDecimal realDeposit = Money.of(currencyData, data.getAmount().subtract(data.getExtraAmount())).getAmount();
-            cumulatedAmount.set(Money.of(currencyData, cumulatedAmount.get().add(data.getAmount()).add(data.getInterestAmount())).getAmount());
+            BigDecimal interestAmount = data.getInterestAmount() != null ? data.getInterestAmount() : BigDecimal.ZERO;
+            BigDecimal amount = data.getAmount() != null ? data.getAmount() : BigDecimal.ZERO;
+            cumulatedAmount.set(Money.of(currencyData, cumulatedAmount.get().add(amount).add(interestAmount)).getAmount());
             data.setCumulatedAmount(cumulatedAmount.get());
             data.setAmount(realDeposit);
         });
